@@ -15,25 +15,27 @@ load_dotenv(override=True) # take environment variables from .env.
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(APP_ROOT, 'Static')
 
+# Load open ai environment variables
 WEBRTC_URL = os.environ.get("AZURE_OPENAI_WEBRTC_URL")
 SESSIONS_URL = os.environ.get("AZURE_OPENAI_WEBRTC_SESSIONS_URL")
 API_KEY = os.environ.get("AZURE_OPENAI_API_KEY")
 DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT")
 VOICE = os.environ.get("AZURE_OPENAI_VOICE")
 
-search_endpoint=os.environ.get("AZURE_SEARCH_ENDPOINT")
-search_index=os.environ.get("AZURE_SEARCH_INDEX")
-semantic_configuration=os.environ.get("AZURE_SEARCH_SEMANTIC_CONFIGURATION") or None
-identifier_field=os.environ.get("AZURE_SEARCH_IDENTIFIER_FIELD") or "chunk_id"
-content_field=os.environ.get("AZURE_SEARCH_CONTENT_FIELD") or "chunk"
-embedding_field=os.environ.get("AZURE_SEARCH_EMBEDDING_FIELD") or "text_vector"
-title_field=os.environ.get("AZURE_SEARCH_TITLE_FIELD") or "title"
-use_vector_query=(os.getenv("AZURE_SEARCH_USE_VECTOR_QUERY", "true") == "true")
-search_api_key=os.environ.get("AZURE_SEARCH_API_KEY") 
+# Azure Search configuration
+SEARCH_ENDPOINT=os.environ.get("AZURE_SEARCH_ENDPOINT")
+SEARCH_INDEX=os.environ.get("AZURE_SEARCH_INDEX")
+SEMANTIC_CONFIGURATION=os.environ.get("AZURE_SEARCH_SEMANTIC_CONFIGURATION") or None
+IDENTIFIER_FIELD=os.environ.get("AZURE_SEARCH_IDENTIFIER_FIELD") or "chunk_id"
+CONTENT_FIELD=os.environ.get("AZURE_SEARCH_CONTENT_FIELD") or "chunk"
+EMBEDDING_FIELD=os.environ.get("AZURE_SEARCH_EMBEDDING_FIELD") or "text_vector"
+TITLE_FIELD=os.environ.get("AZURE_SEARCH_TITLE_FIELD") or "title"
+USE_VECTOR_QUERY=(os.getenv("AZURE_SEARCH_USE_VECTOR_QUERY", "true") == "true")
+SEARCH_API_KEY=os.environ.get("AZURE_SEARCH_API_KEY") 
 
 # Create a SearchClient using your endpoint, index, and api_key credential
-credential = AzureKeyCredential(search_api_key)
-search_client = SearchClient(endpoint=search_endpoint, index_name=search_index, credential=credential)
+credential = AzureKeyCredential(SEARCH_API_KEY)
+search_client = SearchClient(endpoint=SEARCH_ENDPOINT, index_name=SEARCH_INDEX, credential=credential)
 
 
 logging.basicConfig(level=logging.INFO)
@@ -87,21 +89,21 @@ async def get_chunks(request):
 
     # Hybrid query using Azure AI Search with (optional) Semantic Ranker
     vector_queries = []
-    if use_vector_query:
-        vector_queries.append(VectorizableTextQuery(text=query_text, k_nearest_neighbors=50, fields=embedding_field))
+    if USE_VECTOR_QUERY:
+        vector_queries.append(VectorizableTextQuery(text=query_text, k_nearest_neighbors=50, fields=EMBEDDING_FIELD))
     search_results =  search_client.search(
         search_text=query_text, 
-        query_type="semantic" if semantic_configuration else "simple",
-        semantic_configuration_name=semantic_configuration,
+        query_type="semantic" if SEMANTIC_CONFIGURATION else "simple",
+        semantic_configuration_name=SEMANTIC_CONFIGURATION,
         top=5,
         vector_queries=vector_queries,
-        select=", ".join([str(identifier_field), str(content_field)])
+        select=", ".join([str(IDENTIFIER_FIELD), str(CONTENT_FIELD)])
     )
 
     result = ""
     for r in search_results:
-        result += f"[{r[identifier_field]}]: {r[content_field]}\n-----\n"
-        # print(f"[{r[identifier_field]}]: {r[content_field]}\n-----\n")
+        result += f"[{r[IDENTIFIER_FIELD]}]: {r[CONTENT_FIELD]}\n-----\n"
+        # print(f"[{r[IDENTIFIER_FIELD]}]: {r[CONTENT_FIELD]}\n-----\n")
 
     # Print the result in yellow
     print(f"\033[93mSearch result:\n{result}\033[0m")
