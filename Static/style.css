@@ -1,0 +1,80 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    color: #333;
+}
+.container {
+    display: flex;
+    min-height: 100vh;
+}
+.left-column {
+    width: 30%;
+    padding: 20px;
+    background-color: #fff;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center buttons */
+}
+.right-column {
+    width: 70%;
+    padding: 20px;
+    overflow-y: auto; /* Scroll for log messages */
+}
+h1 {
+    color: #007bff;
+    text-align: center;
+    margin-bottom: 20px;
+}
+p.warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 10px 2px; /* Add some margin around buttons */
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+button:hover {
+    background-color: #0056b3;
+}
+#closeSessionBtn {
+    display: none; /* Initially hidden */
+    background-color: #dc3545; /* Red color for close button */
+}
+#closeSessionBtn:hover {
+    background-color: #c82333;
+}
+#logContainer {
+    background-color: #e9ecef;
+    padding: 15px;
+    border-radius: 5px;
+    height: calc(100vh - 120px); /* Adjust height based on padding and other elements */
+    overflow-y: auto;
+}
+#logContainer p {
+    margin: 5px 0;
+    padding: 8px;
+    background-color: #fff;
+    border-left: 3px solid #007bff;
+    border-radius: 3px;
+}
+#audioElement {
+    display: none; /* Hide the default audio player */
+}
