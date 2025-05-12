@@ -1,4 +1,4 @@
-# Real-time Audio and Data Exchange with Azure OpenAI and Azure Search
+# WebRTC - Real-time Audio Azure OpenAI and Azure Search
 
 This solution semonstrates web application that facilitates real-time audio and data exchange between a Python backend and a JavaScript frontend using **WebRTC**. It integrates with Azure OpenAI for advanced AI capabilities and Azure Search for efficient data retrieval.
 
