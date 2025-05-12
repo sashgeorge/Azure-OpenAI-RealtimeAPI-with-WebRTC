@@ -82,7 +82,7 @@ This solution semonstrates web application that facilitates real-time audio and 
     AZURE_SEARCH_EMBEDDING_FIELD="text_vector"
 
     AZURE_OPENAI_WEBRTC_URL="https://YOUR_REGION.realtimeapi-preview.ai.azure.com/v1/realtimertc"
-    AZURE_OPENAI_WEBRTC_SESSIONS_URL=YOUR_AOAI_SESSIONS_ENDPOINT # e.g., https://YOUR_AOAI_RESOURCE.openai.azure.com/openai/extensions/on-your-data/v1/sessions
+    AZURE_OPENAI_WEBRTC_SESSIONS_URL="https://<Replace with your deployment name>.openai.azure.com/openai/realtimeapi/sessions?api-version=2025-04-01-preview"
     AZURE_OPENAI_API_KEY=YOUR_AZURE_OPENAI_API_KEY
     AZURE_OPENAI_DEPLOYMENT="YOUR_AOAI_DEPLOYMENT_NAME" # e.g., gpt-4o-realtime-preview
     AZURE_OPENAI_VOICE="verse" # Desired voice for text-to-speech
