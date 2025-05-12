@@ -136,7 +136,7 @@ This configuration is loaded by `Static/app.js` and used to initialize and contr
 
 *   **`POST /start-session`**: Initializes a WebRTC session with Azure OpenAI and returns an ephemeral key and session ID.
 *   **`POST /webrtc-sdp`**: Handles the SDP offer/answer exchange for establishing the WebRTC peer connection.
-*   **`POST /chunks`**: Called by the frontend when the AI requests to use the `get_chunks` tool. This endpoint queries Azure Search based on the `userquery` and returns relevant chunks of information.
+*   **`POST /chunks`**: Endpoint to get chunks from AI Search for RAG. This endpoint queries Azure Search based on the `userquery` and returns relevant chunks of information.
 *   **`GET /Static/{filename:.+}`**: Serves static files (HTML, CSS, JS) from the `Static/` directory.
 
 ## Docker
@@ -155,7 +155,7 @@ The application can be built and run using Docker.
     ```
     This command maps port 8080 of the container to port 8080 on the host and mounts your local `.env` file into the container. Ensure your `.env` file is correctly populated.
 
-    Access the application at `http://localhost:8080/Static/index.html`.
+    Access the application at `http://localhost:8080`.
 
 ## Deploy in Azure Container Apps (ACA)
 
