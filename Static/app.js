@@ -1,4 +1,3 @@
-
 import { CONFIG } from './config.js';
 
 
@@ -16,6 +15,7 @@ let sessionId = null;
 
 document.getElementById('startSessionBtn').addEventListener('click', async () => {
     document.getElementById("logContainer").innerHTML = '';
+    document.getElementById("logContainerSystem").innerHTML = '';
     // Step 1: Start session and get ephemeral key
     const resp = await fetch('/start-session', { method: 'POST' });
     const data = await resp.json();
@@ -30,6 +30,8 @@ document.getElementById('startSessionBtn').addEventListener('click', async () =>
     await startWebRTC();
 });
 
+// This function handles the transcript message received from the server
+// It extracts the transcript from the message and updates the UI
 async function handleTranscript(message) {
     const transcript = message.response?.output?.[0]?.content?.[0]?.transcript;
     if (transcript) {
@@ -55,7 +57,6 @@ async function handleChunksFunction(output) {
     try {
         const args = JSON.parse(output.arguments);
         // logMessage('Chunks function called with args: ' + args.userquery);
-        // Call backend to get weather data (using /chunks route)
         const resp = await fetch('/chunks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -67,9 +68,8 @@ async function handleChunksFunction(output) {
             return "Could not get chunks data";
         }
 
-        // const data = await resp.json();
         const text = await resp.text();
-        // data.result is an array of objects with id and content fields
+        // text is an array of objects with id and content fields
         return text;
     } catch (error) {
         logMessage('Chunks Function Error: ' + error);
@@ -99,47 +99,44 @@ async function startWebRTC() {
         try {
             const message = JSON.parse(event.data);
             console.log('Received message:', message);
-            if (message.type === "response.output_item.done"){
-                // Handle output item done
-                // logMessage('Output item done Sash: ' + JSON.stringify(message, null, 2));
-            }
-            
-            if (message.type === 'response.done') {
-                // await MessageHandler.handleTranscript(message);
-                await handleTranscript(message);
-                const output = message.response?.output?.[0];
-                if (output?.type === 'function_call' && output?.call_id) {
-                    // logMessage('Function call detected: ' + output.name);
-                    let result;
-                    if (output.name === 'get_chunks') {
-                        result = await handleChunksFunction(output);
-                    } else if (output.name === 'search_web') {
-                        result = await handleSearchFunction(output); // Ensure handleSearchFunction is defined or remove if not used
-                    }
 
-                    if (result) {
-                        // Concatenate SYSTEM_PROMPT with result
-                        // logMessage('Function call result: ' + result);
-                        const combinedResult = `${CONFIG.SYSTEM_PROMPT}\\n\\n${result}`;
-                        // logMessage('Combined result: ' + combinedResult);
-                        sendFunctionOutput(output.call_id, combinedResult);
-                        sendResponseCreate();
+            switch (message.type) {
+                case "response.output_item.done":
+                    // Handle output item done
+                    break;
+                case "session.created":
+                    logMessage("Session created: ");
+                    // Send the initial message to the server for the Greeting
+                    sendInitialMessage();
+                    break;
+                case 'response.done':
+                    await handleTranscript(message);
+                    const output = message.response?.output?.[0];
+                    if (output?.type === 'function_call' && output?.call_id) {
+                        // logMessage('Function call detected: ' + output.name);
+                        let result;
+                        if (output.name === 'get_chunks') {
+                            result = await handleChunksFunction(output);
+                        } else if (output.name === 'search_web') {
+                            result = await handleSearchFunction(output); // Ensure handleSearchFunction is defined or remove if not used
+                        }
+
+                        if (result) {
+                            const combinedResult = `${CONFIG.SYSTEM_PROMPT}\\n\\n${result}`;
+                            // logMessage('Combined result: ' + combinedResult);
+                            sendFunctionOutput(output.call_id, combinedResult);
+                        }
                     }
-                }
+                    break;
+                // default:
+                //     // logMessage('Received unhandled message type: ' + message.type);
+                //     break;
             }
         } catch (error) {
             logMessage('Error parsing message: ' + error);
         }
-        // const realtimeEvent = JSON.parse(event.data);
-        // // logMessage("Received server event: " + JSON.stringify(realtimeEvent, null, 2));
-        // if (realtimeEvent.type === "session.update") {
-        //     logMessage("Instructions: " + realtimeEvent.session.instructions);
-        // } else if (realtimeEvent.type === "session.error") {
-        //     logMessage("Error: " + realtimeEvent.error.message);
-        // } else if (realtimeEvent.type === "session.end") {
-        //     logMessage("Session ended.");
-        // }
     });
+    
     dataChannel.addEventListener('close', () => {
         logMessage('Data channel is closed');
     });
@@ -165,6 +162,19 @@ async function startWebRTC() {
     closeButton.style.display = 'inline-block'; // Make it visible
     closeButton.onclick = stopSession;
 }
+
+function sendInitialMessage() {
+        const startMessage = {
+            type: "response.create",
+            response: {
+                modalities: ["text", "audio"],
+                instructions: "Introduce Yourself." + CONFIG.SYSTEM_PROMPT,
+            }
+        };
+        // logMessage("About to send greeting message: " + JSON.stringify(startMessage, null, 2));
+        dataChannel.send(JSON.stringify(startMessage));
+}
+
 function updateSession() {
     // logMessage('Updating session...');
     if (!dataChannel) return;
@@ -179,7 +189,6 @@ function updateSession() {
     };
     // logMessage("Sending session.update: " + JSON.stringify(event, null, 2));
     dataChannel.send(JSON.stringify(event));
-    // logMessage("Sent client event: " + JSON.stringify(event, null, 2));
 }
 
 function sendFunctionOutput(callId, data) {
@@ -195,7 +204,8 @@ function sendFunctionOutput(callId, data) {
 
     // logMessage("Sending session.update: " + JSON.stringify(event, null, 2));
     dataChannel.send(JSON.stringify(event));
-    // logMessage("Sent client event: " + JSON.stringify(event, null, 2));
+    
+    sendResponseCreate();
 }
 
 function sendResponseCreate() {
@@ -203,9 +213,7 @@ function sendResponseCreate() {
         type: 'response.create'
     };
 
-    // logMessage("Sending response.create: " + JSON.stringify(event, null, 2));
     dataChannel.send(JSON.stringify(event));
-    // logMessage("Sent client event: " + JSON.stringify(event, null, 2));
 }
 
 function stopSession() {
