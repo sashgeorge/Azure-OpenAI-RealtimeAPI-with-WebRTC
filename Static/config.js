@@ -2,8 +2,8 @@
 export const CONFIG = {
     VOICE: 'echo',
     VOICES: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'],
-    TEMPERATURE: 0.6,
-    TRANSCRIPTION_MODEL: 'whisper-1',
+    TEMPERATURE: 0.6,  // the value should a decimal and >=0.6
+    TRANSCRIPTION_MODEL: 'whisper-1',  // user this model now. May support aother transcription models in the future.
     TOOLS: [{
             type: 'function',
             name: 'get_chunks',
