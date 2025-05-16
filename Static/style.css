@@ -76,5 +76,66 @@ button:hover {
     border-radius: 3px;
 }
 #audioElement {
-    display: none; /* Hide the default audio player */
+    display: block;
+    margin-top: 10px;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+  }
+}
+
+.audio-active {
+  animation: pulse 1.5s infinite;
+  background-color: #4CAF50; /* Green background when active */
+  border-color: #388E3C;
+}
+
+#audioStatus {
+  display: none;
+  margin-left: 10px;
+  color: #4caf50;
+  font-weight: bold;
+}
+
+#startSessionBtn.audio-active {
+    background: #4caf50;
+    color: #fff;
+    animation: pulse 1s infinite;
+    border: none;
+}
+
+#startSessionBtn {
+    transition: background 0.3s, color 0.3s;
+}
+
+/* Optional: Style for when the button is not active if needed */
+#startSessionBtn:not(.audio-active) {
+  background-color: #007bff; /* Default blue */
+  border-color: #0056b3;
+}
+
+.message {
+    padding: 5px;
+    margin-bottom: 5px;
+    border-radius: 5px;
+}
+
+.User-message {
+    text-align: right;
+    color: #005A9C; /* Professional Dark Blue for User */
+    /* background-color: #e1f5fe; */ 
+}
+
+.Voice-Agent-message {
+    text-align: left;
+    color: #4A4A4A; /* Professional Dark Gray for Voice Agent */
+    /* background-color: #fce4ec; */
 }

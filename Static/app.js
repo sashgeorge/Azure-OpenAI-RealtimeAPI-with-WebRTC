@@ -25,8 +25,8 @@ document.getElementById('startSessionBtn').addEventListener('click', async () =>
     }
     ephemeralKey = data.ephemeral_key;
     sessionId = data.session_id;
-    logMessage('Ephemeral Key Received: ***' + ephemeralKey);
-    logMessage('WebRTC Session Id = ' + sessionId);
+    // logMessage('Ephemeral Key Received: ***' + ephemeralKey);
+    // logMessage('WebRTC Session Id = ' + sessionId);
     await startWebRTC();
 });
 
@@ -39,12 +39,14 @@ async function handleTranscript(message) {
     }
 }
 
-function updateTranscript(message, type = 'assistant') {
-    const p = document.createElement('p'); // Changed div to p
-    p.className = `message ${type}-message`;
-    p.textContent = message;
-    // logMessage(message); // This line was already commented out
-    
+function updateTranscript(message, type = 'Voice Agent') {
+    const p = document.createElement('p');
+    p.appendChild(document.createTextNode(message));
+
+    // Replace spaces in type for CSS class name
+    const typeClassName = type.replace(/\s+/g, '-');
+    p.className = `message ${typeClassName}-message`;
+
     const transcriptContainer = document.getElementById('logContainer'); 
     if (transcriptContainer.firstChild) {
         transcriptContainer.insertBefore(p, transcriptContainer.firstChild);
@@ -81,9 +83,13 @@ async function handleChunksFunction(output) {
 async function startWebRTC() {
     peerConnection = new RTCPeerConnection();
     const audioElement = document.getElementById('audioElement'); // Get existing audio element
+    const startSessionButton = document.getElementById('startSessionBtn'); // Get start session button
     logMessage('WebRTC Peer Connection Created');
     peerConnection.ontrack = (event) => {
         audioElement.srcObject = event.streams[0];
+        startSessionButton.classList.add('audio-active');
+        startSessionButton.textContent = 'Session Ready';
+        // document.getElementById('audioStatus').style.display = 'inline';
     };
     const clientMedia = await navigator.mediaDevices.getUserMedia({ audio: true });
     const audioTrack = clientMedia.getAudioTracks()[0];
@@ -101,6 +107,23 @@ async function startWebRTC() {
             console.log('Received message:', message);
 
             switch (message.type) {
+                case "conversation.item.input_audio_transcription.completed":
+                    // logMessage("conversation.item.input_audio_transcription.completed");
+
+                    updateTranscript(message.transcript, "User");
+                    break;
+                case "conversation.item.input_audio_transcription.failed":
+                    logMessage("conversation.item.input_audio_transcription.failed");
+                    // const messagestrFailed = JSON.stringify(event.data); // Declare messagestrFailed here
+                    // // logMessage("response.audio_transcript.done" + messagestrFailed);
+                    // updateTranscript("Error SASH: " + messagestrFailed);
+                    break;
+                case "error":
+                    // converts the message to string
+                    // const messagestrError = JSON.stringify(event.data); // Renamed to avoid conflict if scopes were different
+                    // // logMessage("response.audio_transcript.done" + messagestrError);
+                    // updateTranscript("SASH***********" + messagestrError);
+                    break;
                 case "response.output_item.done":
                     // Handle output item done
                     break;
@@ -108,6 +131,8 @@ async function startWebRTC() {
                     logMessage("Session created: ");
                     // Send the initial message to the server for the Greeting
                     sendInitialMessage();
+                    sendSessionUpdateForTranscription();
+
                     break;
                 case 'response.done':
                     await handleTranscript(message);
@@ -122,14 +147,12 @@ async function startWebRTC() {
                         }
 
                         if (result) {
-                            const combinedResult = `${CONFIG.SYSTEM_PROMPT}\\n\\n${result}`;
-                            // logMessage('Combined result: ' + combinedResult);
-                            sendFunctionOutput(output.call_id, combinedResult);
+                            sendFunctionOutput(output.call_id, result);
                         }
                     }
                     break;
                 // default:
-                //     // logMessage('Received unhandled message type: ' + message.type);
+                //     logMessage('Received unhandled message type: ' + message.type);
                 //     break;
             }
         } catch (error) {
@@ -139,6 +162,9 @@ async function startWebRTC() {
     
     dataChannel.addEventListener('close', () => {
         logMessage('Data channel is closed');
+        startSessionButton.classList.remove('audio-active');
+        startSessionButton.textContent = 'Start Session';
+        // document.getElementById('audioStatus').style.display = 'none';
     });
     // SDP offer/answer exchange with backend
     // logMessage('Creating SDP offer...');
@@ -167,8 +193,8 @@ function sendInitialMessage() {
         const startMessage = {
             type: "response.create",
             response: {
-                modalities: ["text", "audio"],
-                instructions: "Introduce Yourself." + CONFIG.SYSTEM_PROMPT,
+                // modalities: ["text", "audio"],
+                instructions: "Introduce Yourself." + CONFIG.GREETING_PROMPT,
             }
         };
         // logMessage("About to send greeting message: " + JSON.stringify(startMessage, null, 2));
@@ -178,18 +204,58 @@ function sendInitialMessage() {
 function updateSession() {
     // logMessage('Updating session...');
     if (!dataChannel) return;
+    // const event = {
+    //     type: "session.update",
+    //     session: {
+    //         instructions: CONFIG.SYSTEM_PROMPT,
+    //         voice: CONFIG.VOICE,
+    //         tools: CONFIG.TOOLS,
+    //         tool_choice: "auto"
+    //     }
+    // };
+
     const event = {
-        type: "session.update",
-        session: {
-            instructions: CONFIG.SYSTEM_PROMPT,
-            voice: CONFIG.VOICE,
-            tools: CONFIG.TOOLS,
-            tool_choice: "auto"
+      type: 'session.update',
+      session: {
+        instructions: CONFIG.SYSTEM_PROMPT,
+        modalities: ['audio', 'text'],
+        temperature: CONFIG.TEMPERATURE,
+        input_audio_transcription: { model: CONFIG.TRANSCRIPTION_MODEL },
+        turn_detection: {
+          type: 'server_vad',
+          threshold: 0.5,
+          prefix_padding_ms: 300,
+          silence_duration_ms: 350,
+          create_response: true
         }
+      }
     };
     // logMessage("Sending session.update: " + JSON.stringify(event, null, 2));
     dataChannel.send(JSON.stringify(event));
 }
+
+function sendSessionUpdateForTranscription() {
+    // const event = {
+    //     type: "session.update",
+    //     session: {
+    //         temperature: CONFIG.TEMPERATURE,
+    //         input_audio_transcription: { model: CONFIG.TRANSCRIPTION_MODEL },
+    //         modalities: ["text", "audio"],
+    //     }
+    // };
+
+    const event = {
+        type: "session.update",
+        session: {
+            tools: CONFIG.TOOLS,
+            tool_choice: "auto"
+        }
+    };
+
+    // logMessage("Sending session.update: " + JSON.stringify(event, null, 2));
+    dataChannel.send(JSON.stringify(event));
+}
+
 
 function sendFunctionOutput(callId, data) {
 
@@ -202,7 +268,7 @@ function sendFunctionOutput(callId, data) {
         }
     };
 
-    // logMessage("Sending session.update: " + JSON.stringify(event, null, 2));
+    // logMessage("Sending conversation.item.create (aka function call): " + JSON.stringify(event, null, 2));
     dataChannel.send(JSON.stringify(event));
     
     sendResponseCreate();
@@ -221,6 +287,10 @@ function stopSession() {
     if (peerConnection) peerConnection.close();
     peerConnection = null;
     logMessage("Session closed.");
+    const startSessionButton = document.getElementById('startSessionBtn');
+    startSessionButton.classList.remove('audio-active');
+    startSessionButton.textContent = 'Start Session';
+    document.getElementById('audioStatus').style.display = 'none';
 }
 
 // Ensure handleSearchFunction is defined if it's used, or remove the call if not.
