@@ -125,9 +125,73 @@ async function startWebRTC() {
         startSessionButton.textContent = 'Session Ready';
         // document.getElementById('audioStatus').style.display = 'inline';
     };
-    const clientMedia = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    const audioConstraints = {
+        audio: {
+            channelCount: 1,
+            sampleRate: 24000, // From Controls.js, good for Azure AI Speech
+            echoCancellation: true,
+            noiseSuppression: true,
+        }
+    };
+    logMessage(`Requesting audio with constraints: ${JSON.stringify(audioConstraints)}`);
+    let clientMedia;
+    try {
+        clientMedia = await navigator.mediaDevices.getUserMedia(audioConstraints);
+    } catch (err) {
+        logMessage(`Error getting user media: ${err.message}. Falling back to default audio constraints.`);
+        try {
+            clientMedia = await navigator.mediaDevices.getUserMedia({ audio: true });
+        } catch (fallbackErr) {
+            logMessage(`Fallback getUserMedia error: ${fallbackErr.message}. Cannot start WebRTC audio.`);
+            return;
+        }
+    }
+    
     const audioTrack = clientMedia.getAudioTracks()[0];
-    peerConnection.addTrack(audioTrack);
+    if (!audioTrack) {
+        logMessage("No audio track found. Cannot start WebRTC audio.");
+        return;
+    }
+    peerConnection.addTrack(audioTrack, clientMedia); // Pass the stream as the second argument
+
+    // Attempt to set Opus as preferred codec
+    // This should be done after adding the track and before creating the offer.
+    const transceivers = peerConnection.getTransceivers();
+    // Find the transceiver that was just added for the audio track.
+    // The last added transceiver is usually the one, or find by track.
+    const audioTransceiver = transceivers.find(t => t.sender && t.sender.track === audioTrack);
+
+    if (audioTransceiver && typeof audioTransceiver.setCodecPreferences === 'function') {
+        const capabilities = RTCRtpSender.getCapabilities('audio');
+        if (capabilities && capabilities.codecs) {
+            const opusCodecs = capabilities.codecs.filter(c => c.mimeType.toLowerCase() === 'audio/opus');
+            let preferredOpusCodec = opusCodecs.find(c => c.sampleRate === 24000);
+
+            if (!preferredOpusCodec && opusCodecs.length > 0) {
+                logMessage('Opus at 24kHz not found, selecting first available Opus codec.');
+                preferredOpusCodec = opusCodecs[0]; // Fallback to any Opus codec
+            }
+
+            if (preferredOpusCodec) {
+                logMessage(`Found Opus codec: ${JSON.stringify(preferredOpusCodec)}`);
+                try {
+                    audioTransceiver.setCodecPreferences([preferredOpusCodec]);
+                    logMessage('Attempted to set Opus as preferred codec.');
+                } catch (e) {
+                    logMessage(`Error setting Opus as preferred codec: ${e.message}`);
+                }
+            } else {
+                logMessage('Opus codec not found in capabilities. Will use browser/server default.');
+                // logMessage(`Available audio codecs: ${JSON.stringify(capabilities.codecs.map(c => ({ mimeType: c.mimeType, sampleRate: c.sampleRate, channels: c.channels })))}`);
+            }
+        } else {
+            logMessage('Could not retrieve audio codec capabilities.');
+        }
+    } else {
+        logMessage('setCodecPreferences not available or audio transceiver not found. Will use browser/server default codecs.');
+    }
+
     dataChannel = peerConnection.createDataChannel('realtime-channel');
     // logMessage('Data channel created');
     dataChannel.addEventListener('open', () => {
@@ -142,21 +206,16 @@ async function startWebRTC() {
 
             switch (message.type) {
                 case "conversation.item.input_audio_transcription.completed":
-                    // logMessage("conversation.item.input_audio_transcription.completed");
-
                     updateTranscript(message.transcript, "User");
                     break;
                 case "conversation.item.input_audio_transcription.failed":
                     logMessage("conversation.item.input_audio_transcription.failed");
-                    // const messagestrFailed = JSON.stringify(event.data); // Declare messagestrFailed here
-                    // // logMessage("response.audio_transcript.done" + messagestrFailed);
-                    // updateTranscript("Error SASH: " + messagestrFailed);
                     break;
                 case "error":
-                    // converts the message to string
-                    // const messagestrError = JSON.stringify(event.data); // Renamed to avoid conflict if scopes were different
-                    // // logMessage("response.audio_transcript.done" + messagestrError);
-                    // updateTranscript("SASH***********" + messagestrError);
+                    //converts the message to string
+                    const messagestrError = JSON.stringify(event.data); // Renamed to avoid conflict if scopes were different
+                    // logMessage("response.audio_transcript.done" + messagestrError);
+                    updateTranscript("Error***********" + messagestrError);
                     break;
                 case "response.output_item.done":
                     // Handle output item done
@@ -165,7 +224,7 @@ async function startWebRTC() {
                     logMessage("Session created: ");
                     // Send the initial message to the server for the Greeting
                     sendInitialMessage();
-                    sendSessionUpdateForTranscription();
+                    sendSessionUpdateForTools();
 
                     break;
                 case 'response.done':
@@ -198,7 +257,6 @@ async function startWebRTC() {
         // logMessage('Data channel is closed');
         startSessionButton.classList.remove('audio-active');
         startSessionButton.textContent = 'Start Session';
-        // document.getElementById('audioStatus').style.display = 'none';
     });
     // SDP offer/answer exchange with backend
     // logMessage('Creating SDP offer...');
@@ -238,15 +296,6 @@ function sendInitialMessage() {
 function updateSession() {
     // logMessage('Updating session...');
     if (!dataChannel) return;
-    // const event = {
-    //     type: "session.update",
-    //     session: {
-    //         instructions: CONFIG.SYSTEM_PROMPT,
-    //         voice: CONFIG.VOICE,
-    //         tools: CONFIG.TOOLS,
-    //         tool_choice: "auto"
-    //     }
-    // };
 
     const event = {
       type: 'session.update',
@@ -254,7 +303,9 @@ function updateSession() {
         instructions: CONFIG.SYSTEM_PROMPT,
         modalities: ['audio', 'text'],
         temperature: CONFIG.TEMPERATURE,
-        input_audio_transcription: { model: CONFIG.TRANSCRIPTION_MODEL },
+        input_audio_transcription: { 
+            model: CONFIG.TRANSCRIPTION_MODEL
+        },
         turn_detection: {
           type: 'server_vad',
           threshold: 0.5,
@@ -268,16 +319,7 @@ function updateSession() {
     dataChannel.send(JSON.stringify(event));
 }
 
-function sendSessionUpdateForTranscription() {
-    // const event = {
-    //     type: "session.update",
-    //     session: {
-    //         temperature: CONFIG.TEMPERATURE,
-    //         input_audio_transcription: { model: CONFIG.TRANSCRIPTION_MODEL },
-    //         modalities: ["text", "audio"],
-    //     }
-    // };
-
+function sendSessionUpdateForTools() {
     const event = {
         type: "session.update",
         session: {
