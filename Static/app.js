@@ -134,7 +134,7 @@ async function startWebRTC() {
             noiseSuppression: true,
         }
     };
-    logMessage(`Requesting audio with constraints: ${JSON.stringify(audioConstraints)}`);
+    // logMessage(`Requesting audio with constraints: ${JSON.stringify(audioConstraints)}`);
     let clientMedia;
     try {
         clientMedia = await navigator.mediaDevices.getUserMedia(audioConstraints);
@@ -169,15 +169,15 @@ async function startWebRTC() {
             let preferredOpusCodec = opusCodecs.find(c => c.sampleRate === 24000);
 
             if (!preferredOpusCodec && opusCodecs.length > 0) {
-                logMessage('Opus at 24kHz not found, selecting first available Opus codec.');
+                // logMessage('Opus at 24kHz not found, selecting first available Opus codec.');
                 preferredOpusCodec = opusCodecs[0]; // Fallback to any Opus codec
             }
 
             if (preferredOpusCodec) {
-                logMessage(`Found Opus codec: ${JSON.stringify(preferredOpusCodec)}`);
+                // logMessage(`Found Opus codec: ${JSON.stringify(preferredOpusCodec)}`);
                 try {
                     audioTransceiver.setCodecPreferences([preferredOpusCodec]);
-                    logMessage('Attempted to set Opus as preferred codec.');
+                    // logMessage('Attempted to set Opus as preferred codec.');
                 } catch (e) {
                     logMessage(`Error setting Opus as preferred codec: ${e.message}`);
                 }
