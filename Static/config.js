@@ -2,14 +2,14 @@
 export const CONFIG = {
     VOICE: 'echo',
     VOICES: ['alloy', 'ash', 'ballad', 'coral', 'echo', 'sage', 'shimmer', 'verse'],
-
+    TEMPERATURE: 0.6,
+    TRANSCRIPTION_MODEL: 'whisper-1',
     TOOLS: [{
             type: 'function',
             name: 'get_chunks',
-            description: `This function answers questions about managing routers,`,
+            description: `This function searches the knowledge base for answers to questions.`,
             parameters: {
                 type: 'object',
-                description: 'The document to get chunks from',
                 properties: {
                     userquery: { 
                         type: 'string',
@@ -19,7 +19,8 @@ export const CONFIG = {
                 required: ['userquery']
             }
         }],
-    SYSTEM_PROMPT: ` You are a helpful assistant who only answers questions using information found via the "search" tool in the knowledge base. Follow these guidelines:
+    GREETING_PROMPT: `I Wendy, your friendly  Assistant. I can answer questions from your knowledge base.`,
+    SYSTEM_PROMPT: ` You are a helpful assistant who only answers questions using information found via the "get_chunks" tool in the knowledge base. Follow these guidelines:
             * Greetings:
                 "Hello, This is Wendy, your dedicated concierge. How can I assist you today?"
             * Answer Requirements:
