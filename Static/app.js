@@ -41,7 +41,41 @@ async function handleTranscript(message) {
 
 function updateTranscript(message, type = 'Voice Agent') {
     const p = document.createElement('p');
-    p.appendChild(document.createTextNode(message));
+
+    if (type === 'Voice Agent' && message.includes('\n')) {
+        // Handle multi-line format for Voice Agent
+        const lines = message.split('\n');
+        lines.forEach((line, index) => {
+            if (line.startsWith('**Step ') && line.includes(':**')) {
+                const boldEndIndex = line.indexOf(':**') + 3;
+                const strongPart = document.createElement('strong');
+                strongPart.textContent = line.substring(0, boldEndIndex);
+                p.appendChild(strongPart);
+                p.appendChild(document.createTextNode(line.substring(boldEndIndex)));
+            } else if (line.match(/^\[.*?\]\((vzhome:\/\/.*?\/)\)$/)) { // Matches [Link Name](vzhome://link-path)
+                const linkTextMatch = line.match(/^\[(.*?)]/);
+                const linkUrlMatch = line.match(/\((vzhome:\/\/.*?)\)$/);
+                if (linkTextMatch && linkUrlMatch) {
+                    const a = document.createElement('a');
+                    a.textContent = linkTextMatch[1];
+                    a.href = linkUrlMatch[1];
+                    a.target = '_blank'; // Optional: open in new tab
+                    p.appendChild(a);
+                } else {
+                    p.appendChild(document.createTextNode(line));
+                }
+            } else {
+                p.appendChild(document.createTextNode(line));
+            }
+
+            if (index < lines.length - 1) {
+                p.appendChild(document.createElement('br'));
+            }
+        });
+    } else {
+        // Original handling for User messages or single-line Voice Agent messages
+        p.appendChild(document.createTextNode(message));
+    }
 
     // Replace spaces in type for CSS class name
     const typeClassName = type.replace(/\s+/g, '-');
@@ -84,7 +118,7 @@ async function startWebRTC() {
     peerConnection = new RTCPeerConnection();
     const audioElement = document.getElementById('audioElement'); // Get existing audio element
     const startSessionButton = document.getElementById('startSessionBtn'); // Get start session button
-    logMessage('WebRTC Peer Connection Created');
+    // logMessage('WebRTC Peer Connection Created');
     peerConnection.ontrack = (event) => {
         audioElement.srcObject = event.streams[0];
         startSessionButton.classList.add('audio-active');
@@ -161,7 +195,7 @@ async function startWebRTC() {
     });
     
     dataChannel.addEventListener('close', () => {
-        logMessage('Data channel is closed');
+        // logMessage('Data channel is closed');
         startSessionButton.classList.remove('audio-active');
         startSessionButton.textContent = 'Start Session';
         // document.getElementById('audioStatus').style.display = 'none';
