@@ -8,6 +8,7 @@ from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents.models import VectorizableTextQuery
 from dotenv import load_dotenv 
+from config import CONFIG
 
 
 load_dotenv(override=True) # take environment variables from .env.
@@ -20,7 +21,8 @@ WEBRTC_URL = os.environ.get("AZURE_OPENAI_WEBRTC_URL")
 SESSIONS_URL = os.environ.get("AZURE_OPENAI_WEBRTC_SESSIONS_URL")
 API_KEY = os.environ.get("AZURE_OPENAI_API_KEY")
 DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT")
-VOICE = os.environ.get("AZURE_OPENAI_VOICE")
+#get voice from CONFIG
+VOICE = CONFIG.get("VOICE")
 
 # Azure Search configuration
 SEARCH_ENDPOINT=os.environ.get("AZURE_SEARCH_ENDPOINT")
@@ -106,7 +108,7 @@ async def get_chunks(request):
         # print(f"[{r[IDENTIFIER_FIELD]}]: {r[CONTENT_FIELD]}\n-----\n")
 
     # Print the result in yellow
-    print(f"\033[93mSearch result:\n{result}\033[0m")
+    # print(f"\033[93mSearch result:\n{result}\033[0m")
     return web.Response(text=result)
 
 
@@ -116,6 +118,9 @@ async def start_session(request):
         "model": DEPLOYMENT,
         "voice": VOICE
     }
+
+
+
     headers = {
         "api-key": API_KEY,
         "Content-Type": "application/json"
@@ -147,10 +152,7 @@ async def webrtc_sdp(request):
     }
     url = f"{WEBRTC_URL}?model={DEPLOYMENT}"
 
-#print() in yellow
-    print(f"WebRTC SDP exchange URL: {url}")
-    print(f"WebRTC SDP exchange headers: {headers}")
-    # print(f"WebRTC SDP exchange offer_sdp: {offer_sdp}")
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(url, data=offer_sdp, headers=headers) as resp:
@@ -164,6 +166,11 @@ async def webrtc_sdp(request):
     except Exception as e:
         logger.exception("Error in WebRTC SDP exchange:")
         return web.json_response({"error": str(e)}, status=500)
+
+@routes.get('/config')
+async def get_config(request):
+    """Serve the CONFIG constants as JSON to the frontend."""
+    return web.json_response(CONFIG)
 
 async def create_app() -> web.Application:
     app = web.Application()

@@ -82,7 +82,7 @@ This solution semonstrates web application that facilitates real-time audio and 
     AZURE_SEARCH_EMBEDDING_FIELD="text_vector"
 
     AZURE_OPENAI_WEBRTC_URL="https://YOUR_REGION.realtimeapi-preview.ai.azure.com/v1/realtimertc"
-    AZURE_OPENAI_WEBRTC_SESSIONS_URL="https://<Replace with your deployment name>.openai.azure.com/openai/realtimeapi/sessions?api-version=2025-04-01-preview"
+    AZURE_OPENAI_WEBRTC_SESSIONS_URL=YOUR_AOAI_SESSIONS_ENDPOINT # e.g., https://YOUR_AOAI_RESOURCE.openai.azure.com/openai/extensions/on-your-data/v1/sessions
     AZURE_OPENAI_API_KEY=YOUR_AZURE_OPENAI_API_KEY
     AZURE_OPENAI_DEPLOYMENT="YOUR_AOAI_DEPLOYMENT_NAME" # e.g., gpt-4o-realtime-preview
     AZURE_OPENAI_VOICE="verse" # Desired voice for text-to-speech
@@ -111,8 +111,8 @@ This solution semonstrates web application that facilitates real-time audio and 
 │   ├── index.html              # Main HTML page
 │   ├── style.css               # CSS styles
 │   ├── app.js                  # Main frontend JavaScript logic
-│   └── config.js               # Frontend configuration
 ├── app.py                      # Main Python backend application
+├── config.py                   # configuration susch as system prompt, temperature etc
 ├── requirements.txt            # Python dependencies
 ├── Dockerfile                  # Docker configuration
 ├── env.Sample                  # Sample environment variables file
@@ -136,7 +136,7 @@ This configuration is loaded by `Static/app.js` and used to initialize and contr
 
 *   **`POST /start-session`**: Initializes a WebRTC session with Azure OpenAI and returns an ephemeral key and session ID.
 *   **`POST /webrtc-sdp`**: Handles the SDP offer/answer exchange for establishing the WebRTC peer connection.
-*   **`POST /chunks`**: Endpoint to get chunks from AI Search for RAG. This endpoint queries Azure Search based on the `userquery` and returns relevant chunks of information.
+*   **`POST /chunks`**: Called by the frontend when the AI requests to use the `get_chunks` tool. This endpoint queries Azure Search based on the `userquery` and returns relevant chunks of information.
 *   **`GET /Static/{filename:.+}`**: Serves static files (HTML, CSS, JS) from the `Static/` directory.
 
 ## Docker
@@ -155,7 +155,7 @@ The application can be built and run using Docker.
     ```
     This command maps port 8080 of the container to port 8080 on the host and mounts your local `.env` file into the container. Ensure your `.env` file is correctly populated.
 
-    Access the application at `http://localhost:8080`.
+    Access the application at `http://localhost:8080/Static/index.html`.
 
 ## Deploy in Azure Container Apps (ACA)
 
