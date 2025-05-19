@@ -23,8 +23,7 @@ CONFIG = {
         }
     ],
     "GREETING_PROMPT": """
-I am Wendy, your friendly Verizon Assistant.
-I can answer questions about managing Verizon routers, and features of the Verizon Home App.
+I am Wendy, your friendly AI Assistant.
 """,
     "SYSTEM_PROMPT": """You are a helpful assistant who only answers questions using information found via the "get_chunks" tool in the knowledge base. Follow these guidelines:
             * Answer Requirements:
