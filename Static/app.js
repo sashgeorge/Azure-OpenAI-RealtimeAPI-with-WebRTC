@@ -1,4 +1,25 @@
-import { CONFIG } from './config.js';
+
+let CONFIG = null;
+
+async function loadConfig() {
+    const resp = await fetch('/config');
+    if (!resp.ok) {
+        throw new Error('Failed to load config from server');
+    }
+    CONFIG = await resp.json();
+    // logMessage('Config loaded: ' + JSON.stringify(CONFIG, null, 2));
+}
+
+// Wait for config to load before enabling UI
+window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        await loadConfig();
+        // Optionally, enable UI or fire any init code here
+        document.getElementById('startSessionBtn').disabled = false;
+    } catch (e) {
+        alert('Failed to load configuration: ' + e.message);
+    }
+});
 
 
 const logMessage = (msg) => {
